@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.SysDataBaseTypeMapper">
+
+    <resultMap id="baseMap" type="com.ruoyi.system.domain.SysDataBaseType">
+        <id property="typeId" column="type_id"/>
+        <result property="name" column="type_name"/>
+        <result property="driver" column="driver"/>
+    </resultMap>
+    <select id="getDriver" resultMap="baseMap">
+        select
+            type_id,
+            type_name,
+            driver
+        from database_type
+        where type_id=#{typeId}
+    </select>
+
+    <select id="list" resultMap="baseMap">
+        select
+            type_id,
+            type_name,
+            driver
+        from database_type
+    </select>
+
+
+</mapper>

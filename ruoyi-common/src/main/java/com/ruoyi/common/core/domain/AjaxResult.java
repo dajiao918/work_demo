@@ -159,4 +159,8 @@ public class AjaxResult extends HashMap<String, Object>
         super.put(key, value);
         return this;
     }
+
+    public int getCode() {
+        return (int) get(CODE_TAG);
+    }
 }

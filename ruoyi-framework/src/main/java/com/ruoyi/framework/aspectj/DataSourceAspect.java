@@ -13,7 +13,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import com.ruoyi.common.annotation.DataSource;
 import com.ruoyi.common.utils.StringUtils;
-import com.ruoyi.framework.datasource.DynamicDataSourceContextHolder;
+import com.ruoyi.system.domain.DynamicDataSourceContextHolder;
 
 /**
  * 多数据源处理

@@ -77,7 +77,7 @@
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
-          <el-button 
+          <el-button
             size="mini"
             type="text"
             icon="el-icon-edit"
@@ -335,6 +335,7 @@ export default {
     getList() {
       this.loading = true;
       listMenu(this.queryParams).then(response => {
+        console.log(response)
         this.menuList = this.handleTree(response.data, "menuId");
         this.loading = false;
       });

@@ -4,8 +4,10 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.system.domain.DynamicDataSourceContextHolder;
 import com.ruoyi.system.domain.vo.DataSourceConfig;
-import com.ruoyi.system.service.SysMySQLDataSourceService;
+import com.ruoyi.system.service.SysDataSourceService;
+import com.ruoyi.web.controller.strategy.LoadDataSourceStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -16,37 +18,44 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/system/dataSource")
 public class SystemDataSourceController {
 
+    @Qualifier("AbstractDataSourceServiceImpl")
     @Autowired
-    SysMySQLDataSourceService sysMySQLDataSourceService;
+    SysDataSourceService sysDataSourceService;
+    @Autowired
+    LoadDataSourceStrategy loadDataSourceStrategy;
 
     @GetMapping("/history")
     public AjaxResult historyDatabases() {
-        return sysMySQLDataSourceService.history(SecurityUtils.getUserId());
+        return sysDataSourceService.history(SecurityUtils.getUserId());
     }
 
     @PostMapping("/databases")
-    public AjaxResult databases(@RequestBody DataSourceConfig dataSourceConfig) {
+    public AjaxResult connDatabases(@RequestBody DataSourceConfig dataSourceConfig) {
         dataSourceConfig.setUserId(SecurityUtils.getUserId());
+        SysDataSourceService sysDataSourceService =
+                loadDataSourceStrategy.getInstance(dataSourceConfig);
         AjaxResult ajaxResult =
-                sysMySQLDataSourceService.connDataBase(dataSourceConfig);
+                sysDataSourceService.connDataBase(dataSourceConfig);
         DynamicDataSourceContextHolder.clearDataSourceType();
         return ajaxResult;
     }
 
     @PostMapping("/test")
-    public AjaxResult test(@RequestBody DataSourceConfig dataSourceConfig) {
-        return sysMySQLDataSourceService.testConnection(dataSourceConfig, true);
+    public AjaxResult testConn(@RequestBody DataSourceConfig dataSourceConfig) {
+        SysDataSourceService sysDataSourceService =
+                loadDataSourceStrategy.getInstance(dataSourceConfig);
+        return sysDataSourceService.testConnection(dataSourceConfig, true);
     }
 
     @PostMapping("/tables")
     public AjaxResult tables(@RequestBody DataSourceConfig config,
                              @RequestParam("databaseName") String databaseName) {
-        return sysMySQLDataSourceService.getTables(config,databaseName);
+        return sysDataSourceService.getTables(config,databaseName);
     }
 
     @DeleteMapping("/{configId}")
     public AjaxResult delete(@PathVariable("configId") Long configId) {
-       return sysMySQLDataSourceService.delDataSource(configId);
+        return sysDataSourceService.delDataSource(configId);
     }
 
 

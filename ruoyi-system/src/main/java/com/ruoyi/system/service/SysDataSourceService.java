@@ -7,7 +7,7 @@ import com.ruoyi.system.domain.vo.DataSourceConfig;
  * @author: Mr.Yu
  * @create: 2022-06-24 21:26
  **/
-public interface SysMySQLDataSourceService {
+public interface SysDataSourceService {
 
 
 

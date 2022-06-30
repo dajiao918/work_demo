@@ -2,60 +2,41 @@
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.ruoyi.system.mapper.SysDataSourceMapper">
+<mapper namespace="com.ruoyi.system.mapper.SysDataSourceConfigMapper">
 
-    <resultMap id="configBaseMap" type="com.ruoyi.system.domain.vo.DataSourceConfig">
+    <resultMap id="configBaseMap" type="com.ruoyi.system.domain.SysDataSourceConfig">
         <result column="config_id" property="configId"/>
         <result column="user_id" property="userId"/>
         <result column="type_id" property="type"/>
         <result column="schema_name" property="schemaName"/>
         <result column="url" property="url"/>
         <result column="username" property="username"/>
+        <result column="disabled" property="disabled"/>
         <result column="password" property="password"/>
         <result column="params" property="params"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
     </resultMap>
 
-    <resultMap id="baseMap" type="com.ruoyi.system.domain.MysqlSheMeta">
-        <result column="CATALOG_NAME" property="catalogName"/>
-        <result column="SCHEMA_NAME" property="schemaName"/>
-        <result column="DEFAULT_CHARACTER_SET_NAME" property="defaultCharacterSetName"/>
-        <result column="DEFAULT_COLLATION_NAME" property="defaultCollationName"/>
-        <result column="SQL_PATH" property="sqlPath"/>
-        <collection property="children" select="getTables" column="SCHEMA_NAME"/>
-    </resultMap>
-
-    <resultMap id="tableBaseMap" type="com.ruoyi.system.domain.MySQLTable">
-        <result column="table_catalog" property="tableCatalog"/>
-        <result column="table_schema" property="tableSchema"/>
-        <result column="table_name" property="schemaName"/>
-        <result column="table_type" property="tableType"/>
-        <result column="engine" property="engine"/>
-        <result column="version" property="version"/>
-        <result column="row_format" property="rowFormat"/>
-        <result column="table_rows" property="tableRows"/>
-        <result column="avg_row_length" property="avgRowLength"/>
-        <result column="data_length" property="dataLength"/>
-        <result column="max_data_length" property="maxDataLength"/>
-        <result column="index_length" property="indexLength"/>
-        <result column="data_free" property="dataFree"/>
-        <result column="auto_increment" property="autoIncrement"/>
-        <result column="create_time" property="createTime"/>
-        <result column="update_time" property="updateTime"/>
-        <result column="check_time" property="checkTime"/>
-        <result column="table_collation" property="tableCollation"/>
-        <result column="checksum" property="checksum"/>
-        <result column="create_options" property="createOptions"/>
-        <result column="table_comment" property="tableComment"/>
-    </resultMap>
+    <update id="update" >
+        update data_source_config set
+            type_id=#{config.type},
+            schema_name=#{config.schemaName},
+            url=#{config.url},
+            username=#{config.username},
+            password=#{config.password},
+            disabled=#{config.disabled},
+            params=#{config.params},
+            update_time=#{config.updateTime}
+        where config_id=#{config.configId}
+    </update>
 
     <insert id="save" useGeneratedKeys="true" keyProperty="configId">
         insert into data_source_config(
             <include refid="dataSourceConfig_filed"/>
         ) values(
             #{config.configId},#{config.userId},#{config.type},#{config.schemaName},
-            #{config.url},#{config.username},#{config.password},#{config.params},
+            #{config.url},#{config.username},#{config.password},#{config.disabled},#{config.params},
             #{config.createTime},#{config.updateTime}
         )
     </insert>
@@ -64,43 +45,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         delete from data_source_config
         where config_id=#{configId}
     </delete>
-
-    <select id="metaList" resultMap="baseMap">
-        SELECT
-            CATALOG_NAME,
-            SCHEMA_NAME,
-            DEFAULT_CHARACTER_SET_NAME,
-            DEFAULT_COLLATION_NAME,
-            SQL_PATH
-        FROM SCHEMATA
-    </select>
-
-    <select id="getTables" resultMap="tableBaseMap">
-        select
-            table_catalog,
-            table_schema,
-            table_name,
-            table_type,
-            engine,
-            version,
-            row_format,
-            table_rows,
-            avg_row_length,
-            data_length,
-            max_data_length,
-            index_length,
-            data_free,
-            auto_increment,
-            create_time,
-            update_time,
-            check_time,
-            table_collation,
-            checksum,
-            create_options,
-            table_comment
-        from tables
-        where TABLE_SCHEMA = #{databaseName}
-    </select>
 
     <select id="getDataSourceConfig" resultMap="configBaseMap">
         select
@@ -123,6 +67,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         url,
         username,
         password,
+        disabled,
         params,
         create_time,
         update_time

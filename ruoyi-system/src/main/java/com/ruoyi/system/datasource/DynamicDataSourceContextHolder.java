@@ -1,11 +1,11 @@
-package com.ruoyi.system.domain;
+package com.ruoyi.system.datasource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * 数据源切换处理
- * 
+ *
  * @author ruoyi
  */
 public class DynamicDataSourceContextHolder

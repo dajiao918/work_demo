@@ -1,5 +1,6 @@
-package com.ruoyi.system.domain.vo;
+package com.ruoyi.system.domain;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import lombok.Data;
 
 import java.util.Date;
@@ -11,7 +12,7 @@ import java.util.Map;
  * @create: 2022-06-24 21:27
  **/
 @Data
-public class DataSourceConfig {
+public class SysDataSourceConfig {
 
     private Long configId;
     private Long userId;
@@ -20,6 +21,7 @@ public class DataSourceConfig {
     private String url;
     private String username;
     private String password;
+    private Boolean disabled;
     private Date createTime;
     private Date updateTime;
     private String params;

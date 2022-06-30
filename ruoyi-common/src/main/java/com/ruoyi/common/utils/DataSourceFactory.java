@@ -12,11 +12,8 @@ import java.util.Map;
 public class DataSourceFactory {
 
     public static final String MYSQL_DEFAULT_TABLE = "information_schema";
-    public static final String MYSQL_DRIVER = "com.mysql.cj.jdbc.Driver";
     public static final String MYSQL_URL_PREFIX = "jdbc:mysql://";
     public static final String MYSQL_DEFAULT_PARAMS = "?characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false";
-    public static final String MYSQL_URL_SUBFIX =
-            "/" + MYSQL_DEFAULT_TABLE + MYSQL_DEFAULT_PARAMS;
 
 
 
@@ -28,50 +25,46 @@ public class DataSourceFactory {
 
     public static DataSource createDataSource(String driver, String ip, String password,
                                               String username, Map<String,String> params){
+        return createDataSource(driver,ip,password,username,params,null);
+    }
+
+    public static DataSource createDataSource(String driver, String ip, String password,
+                                              String username, Map<String,String> params, String schemaName){
         if (driver == null || driver.contains("mysql")) {
             return createMySqlDataSource(driver,ip,
-                    password,username,params);
+                    password,username,params, schemaName);
         }
         else if (driver.contains("oracle")) {
             return createOracleDataSource(ip,
-                    password,username,params);
+                    password,username,params, schemaName);
         } else if (driver.contains("dm")) {
             return createDmDataSource(ip,
-                    password,username,params);
+                    password,username,params, schemaName);
         } else {
             return createMySqlDataSource(driver,ip,
-                    password,username,params);
+                    password,username,params, schemaName);
         }
     }
 
-    public static DataSource createDataSource(DataBaseType type, String ip, String password,
-                                              String username, Map<String,String> params) {
+    public static DataSource createDataSource(DataSourceBuilder builder) {
+        return createDataSource(builder.getDriver(),builder.getUrl(),builder.getPassword(),builder.getUsername(),builder.getParamsMap(),builder.getSchema());
+    }
 
-        switch (type) {
-            case MYSQL:
-                return createMySqlDataSource(MYSQL_DRIVER,ip,password, username,params);
-            case ORACLE:
-                return createOracleDataSource(ip,password,username,params);
-            case DM:
-                return createDmDataSource(ip,password,username,params);
-        }
+    private static DataSource createDmDataSource(String ip, String password, String username, Map<String,String> params, String schemaName) {
         return null;
     }
 
-    private static DataSource createDmDataSource(String ip, String password, String username, Map<String,String> params) {
+    private static DataSource createOracleDataSource(String ip, String password, String username, Map<String,String> params, String schemaName) {
         return null;
     }
 
-    private static DataSource createOracleDataSource(String ip, String password, String username, Map<String,String> params) {
-        return null;
-    }
-
-    private static DataSource createMySqlDataSource(String driver, String ip, String password, String username, Map<String,String> params) {
+    private static DataSource createMySqlDataSource(String driver, String ip, String password, String username, Map<String,String> params, String databaseName) {
+        databaseName = databaseName == null ? MYSQL_DEFAULT_TABLE : databaseName;
         StringBuilder url = new StringBuilder().append(MYSQL_URL_PREFIX).append(ip);
         if (params == null || params.size() == 0) {
-             url.append(MYSQL_URL_SUBFIX);
+            url.append("/").append(databaseName).append(MYSQL_DEFAULT_PARAMS);
         } else {
-            url.append("/").append(MYSQL_DEFAULT_TABLE).append("?");
+            url.append("/").append(databaseName).append("?");
             int size = params.size();
             for (Map.Entry<String, String> entry : params.entrySet()) {
                 if (size == 1) {

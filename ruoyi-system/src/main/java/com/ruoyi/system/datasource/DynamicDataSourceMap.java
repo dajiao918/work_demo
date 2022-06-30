@@ -1,4 +1,4 @@
-package com.ruoyi.system.domain;
+package com.ruoyi.system.datasource;
 
 import javax.sql.DataSource;
 
@@ -23,6 +23,10 @@ public class DynamicDataSourceMap {
 
     public static void clearDataSource(String key) {
         DATASOURCE_MAP.remove(key);
+    }
+
+    public static boolean contains(String key) {
+        return DATASOURCE_MAP.containsKey(key);
     }
 
     public static void clear() {

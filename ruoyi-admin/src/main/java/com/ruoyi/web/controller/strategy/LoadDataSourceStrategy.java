@@ -1,6 +1,6 @@
 package com.ruoyi.web.controller.strategy;
 
-import com.ruoyi.system.domain.vo.DataSourceConfig;
+import com.ruoyi.system.domain.SysDataSourceConfig;
 import com.ruoyi.system.service.SysDataSourceService;
 
 /**
@@ -9,6 +9,7 @@ import com.ruoyi.system.service.SysDataSourceService;
  **/
 public interface LoadDataSourceStrategy {
 
-    public SysDataSourceService getInstance(DataSourceConfig config);
+    public SysDataSourceService getInstance(SysDataSourceConfig config);
 
+    SysDataSourceService getInstance(Long configId);
 }

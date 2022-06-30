@@ -1,4 +1,4 @@
-package com.ruoyi.system.domain;
+package com.ruoyi.system.domain.vo;
 
 import lombok.Data;
 
@@ -10,7 +10,7 @@ import java.util.concurrent.locks.Lock;
  * @create: 2022-06-25 11:23
  **/
 @Data
-public class MySQLTable {
+public class MySQLTableMetaVo {
 
     private String tableCatalog;
     private String tableSchema;

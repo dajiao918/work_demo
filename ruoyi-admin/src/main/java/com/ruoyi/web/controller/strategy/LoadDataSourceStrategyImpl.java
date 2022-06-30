@@ -1,7 +1,7 @@
 package com.ruoyi.web.controller.strategy;
 
 import com.ruoyi.system.domain.SysDataBaseType;
-import com.ruoyi.system.domain.vo.DataSourceConfig;
+import com.ruoyi.system.domain.SysDataSourceConfig;
 import com.ruoyi.system.service.SysDataBaseTypeService;
 import com.ruoyi.system.service.SysDataSourceService;
 import org.springframework.beans.BeansException;
@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
-import org.yaml.snakeyaml.events.Event;
 
 /**
  * @author: Mr.Yu
@@ -22,9 +21,11 @@ public class LoadDataSourceStrategyImpl implements LoadDataSourceStrategy, Appli
 
     @Autowired
     private SysDataBaseTypeService sysDataBaseTypeService;
+    @Autowired
+    private SysDataSourceService sysDataSourceService;
 
     @Override
-    public SysDataSourceService getInstance(DataSourceConfig config) {
+    public SysDataSourceService getInstance(SysDataSourceConfig config) {
         if (config.getType() == null) {
             return (SysDataSourceService) applicationContext.getBean("mysqlDataSourceServiceImpl");
         }
@@ -40,6 +41,12 @@ public class LoadDataSourceStrategyImpl implements LoadDataSourceStrategy, Appli
             }
         }
         return (SysDataSourceService) applicationContext.getBean("mysqlDataSourceServiceImpl");
+    }
+
+    @Override
+    public SysDataSourceService getInstance(Long configId) {
+        SysDataSourceConfig config = sysDataSourceService.getDataSourceConfig(configId);
+        return getInstance(config);
     }
 
     @Override

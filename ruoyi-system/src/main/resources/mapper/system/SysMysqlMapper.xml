@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.SysMySQLMapper">
+    <resultMap id="baseMap" type="com.ruoyi.system.domain.vo.MysqlSheMetaVo">
+        <result column="CATALOG_NAME" property="catalogName"/>
+        <result column="SCHEMA_NAME" property="schemaName"/>
+        <result column="DEFAULT_CHARACTER_SET_NAME" property="characterSetName"/>
+        <result column="DEFAULT_COLLATION_NAME" property="collationName"/>
+        <result column="SQL_PATH" property="sqlPath"/>
+        <collection property="children" select="getTables" column="SCHEMA_NAME"/>
+    </resultMap>
+
+    <resultMap id="tableBaseMap" type="com.ruoyi.system.domain.vo.MySQLTableMetaVo">
+        <result column="table_catalog" property="tableCatalog"/>
+        <result column="table_schema" property="tableSchema"/>
+        <result column="table_name" property="schemaName"/>
+        <result column="table_type" property="tableType"/>
+        <result column="engine" property="engine"/>
+        <result column="version" property="version"/>
+        <result column="row_format" property="rowFormat"/>
+        <result column="table_rows" property="tableRows"/>
+        <result column="avg_row_length" property="avgRowLength"/>
+        <result column="data_length" property="dataLength"/>
+        <result column="max_data_length" property="maxDataLength"/>
+        <result column="index_length" property="indexLength"/>
+        <result column="data_free" property="dataFree"/>
+        <result column="auto_increment" property="autoIncrement"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="check_time" property="checkTime"/>
+        <result column="table_collation" property="tableCollation"/>
+        <result column="checksum" property="checksum"/>
+        <result column="create_options" property="createOptions"/>
+        <result column="table_comment" property="tableComment"/>
+    </resultMap>
+
+    <update id="createDatabase">
+        CREATE DATABASE ${config.schemaName}
+        DEFAULT CHARACTER SET ${config.characterSetName} COLLATE #{config.collationName}
+    </update>
+
+    <update id="delDataBase">
+        DROP DATABASE IF EXISTS ${dataBaseName}
+    </update>
+
+    <update id="updateDataBase">
+        ALTER DATABASE ${config.schemaName} CHARACTER set ${config.characterSetName} COLLATE ${config.collationName}
+    </update>
+
+
+    <update id="createTable">
+        CREATE TABLE ${table.tableName} (
+            <foreach collection="table.fields" item="field" index="index">
+                <if test="field.fieldName != null">
+                    ${field.fieldName}
+                    <if test="field.fieldType != null and field.fieldType != ''">
+                        ${field.fieldType}
+                        <if test="field.filedLength != null and field.filedLength != ''">
+                            (${field.filedLength})
+                        </if>
+                    </if>
+                    <if test="field.isNotNull">
+                        NOT NULL
+                    </if>
+                    <if test="field.constrict != null and field.constrict != ''">
+                        ${field.constrict}
+                    </if>
+                    <if test="field.isPrimaryKey">
+                        PRIMARY KEY
+                    </if>
+                    <if test="field.defaultValue != null and field.defaultValue != ''">
+                        DEFAULT '${field.defaultValue}'
+                    </if>
+                    <if test="field.comment != null and field.comment != ''">
+                        COMMENT '${field.comment}'
+                    </if>
+                    <if test="index + 1 != table.fields.size">
+                        ,
+                    </if>
+                </if>
+            </foreach>
+        )
+        <if test="table.engine != null and table.engine != ''">
+            engine=${table.engine}
+        </if>
+        <if test="table.characterSetName != null and table.characterSetName != ''">
+            character set ${table.characterSetName}
+            <if test="table.collateName != null and table.collateName != ''">
+                collate ${table.collateName}
+            </if>
+        </if>
+    </update>
+
+    <delete id="delTable">
+        drop table IF EXISTS ${tableName}
+    </delete>
+
+    <select id="metaList" resultMap="baseMap">
+        SELECT
+            CATALOG_NAME,
+            SCHEMA_NAME,
+            DEFAULT_CHARACTER_SET_NAME,
+            DEFAULT_COLLATION_NAME,
+            SQL_PATH
+        FROM information_schema.SCHEMATA
+    </select>
+
+    <select id="getTables" resultMap="tableBaseMap">
+        select
+            <include refid="tableField"></include>
+        from information_schema.tables
+        where TABLE_SCHEMA = #{databaseName}
+    </select>
+
+    <select id="getTable" resultMap="tableBaseMap">
+        select
+            <include refid="tableField"></include>
+        from information_schema.tables
+        where TABLE_SCHEMA = #{databaseName} and TABLE_NAME=#{tableName}
+    </select>
+
+    <select id="getTableData" resultType="java.util.Map">
+        select *
+        from ${tableName}
+    </select>
+
+    <sql id="tableField">
+        table_catalog,
+        table_schema,
+        table_name,
+        table_type,
+        engine,
+        version,
+        row_format,
+        table_rows,
+        avg_row_length,
+        data_length,
+        max_data_length,
+        index_length,
+        data_free,
+        auto_increment,
+        create_time,
+        update_time,
+        check_time,
+        table_collation,
+        checksum,
+        create_options,
+        table_comment
+    </sql>
+
+
+</mapper>

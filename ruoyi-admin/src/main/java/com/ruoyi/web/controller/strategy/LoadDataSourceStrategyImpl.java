@@ -6,6 +6,7 @@ import com.ruoyi.system.service.SysDataBaseTypeService;
 import com.ruoyi.system.service.SysDataSourceService;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,7 @@ public class LoadDataSourceStrategyImpl implements LoadDataSourceStrategy, Appli
 
     @Autowired
     private SysDataBaseTypeService sysDataBaseTypeService;
+    @Qualifier("mysqlDataSourceServiceImpl")
     @Autowired
     private SysDataSourceService sysDataSourceService;
 

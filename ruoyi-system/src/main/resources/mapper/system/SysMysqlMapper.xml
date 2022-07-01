@@ -38,7 +38,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <update id="createDatabase">
         CREATE DATABASE ${config.schemaName}
-        DEFAULT CHARACTER SET ${config.characterSetName} COLLATE #{config.collationName}
+        DEFAULT CHARACTER SET ${config.characterSetName} COLLATE ${config.collationName}
     </update>
 
     <update id="delDataBase">
@@ -97,13 +97,55 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         drop table IF EXISTS ${tableName}
     </delete>
 
+    <delete id="delTableData">
+        delete from ${tableName}
+        <where>
+            <if test="map != null and map.size>0">
+                <foreach collection="map" index="key" item="value" separator="and">
+                    ${key}=#{value}
+                </foreach>
+            </if>
+        </where>
+    </delete>
+
+    <update id="updateTableData">
+        update ${tableName}
+        set
+        <if test="newMap != null and newMap.size>0">
+            <foreach collection="newMap" index="newKey" item="newValue" separator=",">
+                ${newKey}=#{newValue}
+            </foreach>
+        </if>
+        <where>
+            <if test="oldMap != null and oldMap.size>0">
+                <foreach collection="oldMap" index="oldKey" item="oldValue" separator="and">
+                    ${oldKey}=#{oldValue}
+                </foreach>
+            </if>
+        </where>
+    </update>
+
+    <insert id="insertTableData">
+        insert into ${tableName}
+        (
+            <if test="map != null and map.size>0">
+                <foreach collection="map" index="key" item="value" separator=",">
+                    ${key}
+                </foreach>
+            </if>
+        )
+        values (
+            <if test="map != null and map.size>0">
+                <foreach collection="map" index="key" item="value" separator=",">
+                    ${value}
+                </foreach>
+            </if>
+        )
+    </insert>
+
     <select id="metaList" resultMap="baseMap">
         SELECT
-            CATALOG_NAME,
-            SCHEMA_NAME,
-            DEFAULT_CHARACTER_SET_NAME,
-            DEFAULT_COLLATION_NAME,
-            SQL_PATH
+            <include refid="dataBaseField"></include>
         FROM information_schema.SCHEMATA
     </select>
 
@@ -121,10 +163,27 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where TABLE_SCHEMA = #{databaseName} and TABLE_NAME=#{tableName}
     </select>
 
+
+
+    <select id="getDataBase" resultMap="baseMap">
+            select
+                <include refid="dataBaseField"></include>
+            FROM information_schema.SCHEMATA
+            where SCHEMA_NAME = #{databaseName}
+    </select>
+
     <select id="getTableData" resultType="java.util.Map">
         select *
         from ${tableName}
     </select>
+
+    <sql id="dataBaseField">
+        CATALOG_NAME,
+        SCHEMA_NAME,
+        DEFAULT_CHARACTER_SET_NAME,
+        DEFAULT_COLLATION_NAME,
+        SQL_PATH
+    </sql>
 
     <sql id="tableField">
         table_catalog,

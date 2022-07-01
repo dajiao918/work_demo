@@ -11,6 +11,8 @@ import com.ruoyi.system.domain.vo.DataBaseConfigVo;
 import com.ruoyi.system.service.SysDataSourceService;
 import com.ruoyi.web.controller.strategy.LoadDataSourceStrategy;
 import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +24,7 @@ import java.util.Map;
  * @author: Mr.Yu
  * @create: 2022-06-24 23:16
  **/
+@Slf4j
 @RestController
 @RequestMapping("/system/dataSource")
 public class SystemDataSourceController {
@@ -58,6 +61,22 @@ public class SystemDataSourceController {
         return sysDataSourceService.testConnection(sysDataSourceConfig, true);
     }
 
+    @ApiOperation("获取连接信息接口")
+    @GetMapping("/{configId}")
+    public AjaxResult getSourceConfig(@PathVariable("configId") Long configId) {
+        SysDataSourceConfig config = sysDataSourceService.getDataSourceConfig(configId);
+        return AjaxResult.success(config);
+    }
+
+    @ApiOperation("获取数据库信息")
+    @GetMapping("dataBase/{configId}")
+    public AjaxResult getDataBase(@PathVariable("configId") Long configId,
+                                  @RequestParam("dataBaseName") String dataBaseName) {
+        SysDataSourceConfig sysDataSourceConfig = sysDataSourceService.getDataSourceConfig(configId);
+        SysDataSourceService sysDataSourceService = loadDataSourceStrategy.getInstance(sysDataSourceConfig);
+        return sysDataSourceService.getDataBase(sysDataSourceConfig,dataBaseName);
+    }
+
     @ApiOperation("获取某一数据库表接口")
     @PostMapping("/tables")
     public AjaxResult tables(@RequestBody SysDataSourceConfig config,
@@ -80,7 +99,8 @@ public class SystemDataSourceController {
 
     @ApiOperation("添加数据库接口")
     @PostMapping("/addDB/{configId}")
-    public AjaxResult addDataBase(@PathVariable("configId") Long configId,@RequestBody DataBaseConfigVo dataBaseConfigVo) {
+    public AjaxResult addDataBase(@PathVariable("configId") Long configId,
+                                  @RequestBody DataBaseConfigVo dataBaseConfigVo) {
         SysDataSourceConfig sysDataSourceConfig = sysDataSourceService.getDataSourceConfig(configId);
         SysDataSourceService sysDataSourceService = loadDataSourceStrategy.getInstance(sysDataSourceConfig);
         return sysDataSourceService.addDataBase(sysDataSourceConfig, dataBaseConfigVo);
@@ -88,7 +108,8 @@ public class SystemDataSourceController {
 
     @ApiOperation("删除数据库接口")
     @DeleteMapping("/delDB/{configId}")
-    public AjaxResult delDataBase(@PathVariable("configId") Long configId, @RequestParam("dataBaseName") String dataBaseName) {
+    public AjaxResult delDataBase(@PathVariable("configId") Long configId,
+                                  @RequestParam("dataBaseName") String dataBaseName) {
         SysDataSourceConfig sysDataSourceConfig = sysDataSourceService.getDataSourceConfig(configId);
         SysDataSourceService sysDataSourceService = loadDataSourceStrategy.getInstance(sysDataSourceConfig);
         return sysDataSourceService.delDataBase(sysDataSourceConfig,dataBaseName);
@@ -96,7 +117,8 @@ public class SystemDataSourceController {
 
     @ApiOperation("修改数据库信息")
     @PutMapping("/upDB/{configId}")
-    public AjaxResult updateDataBase(@PathVariable("configId") Long configId, @RequestBody DataBaseConfigVo dataBaseConfig) {
+    public AjaxResult updateDataBase(@PathVariable("configId") Long configId,
+                                     @RequestBody DataBaseConfigVo dataBaseConfig) {
         SysDataSourceConfig sysDataSourceConfig = sysDataSourceService.getDataSourceConfig(configId);
         SysDataSourceService sysDataSourceService = loadDataSourceStrategy.getInstance(sysDataSourceConfig);
         return sysDataSourceService.updateDataBase(sysDataSourceConfig,dataBaseConfig);
@@ -105,7 +127,9 @@ public class SystemDataSourceController {
 
     @ApiOperation("添加表接口")
     @PostMapping("/addTB/{configId}")
-    public AjaxResult addTable(@RequestBody Table table, @PathVariable("configId") Long configId, @RequestParam("dataBaseName") String dataBaseName) {
+    public AjaxResult addTable(@RequestBody Table table,
+                               @PathVariable("configId") Long configId,
+                               @RequestParam("dataBaseName") String dataBaseName) {
         SysDataSourceConfig sysDataSourceConfig = sysDataSourceService.getDataSourceConfig(configId);
         SysDataSourceService sysDataSourceService = loadDataSourceStrategy.getInstance(sysDataSourceConfig);
         return sysDataSourceService.addTable(sysDataSourceConfig,dataBaseName,table);
@@ -113,7 +137,9 @@ public class SystemDataSourceController {
 
     @ApiOperation("删除表接口")
     @PostMapping("/delTB/{configId}")
-    public AjaxResult delTable(@RequestParam("tableName") String tableName, @PathVariable("configId") Long configId, @RequestParam("dataBaseName") String dataBaseName) {
+    public AjaxResult delTable(@RequestParam("tableName") String tableName,
+                               @PathVariable("configId") Long configId,
+                               @RequestParam("dataBaseName") String dataBaseName) {
         SysDataSourceConfig sysDataSourceConfig = sysDataSourceService.getDataSourceConfig(configId);
         SysDataSourceService sysDataSourceService = loadDataSourceStrategy.getInstance(sysDataSourceConfig);
         return sysDataSourceService.delTable(sysDataSourceConfig,dataBaseName,tableName);
@@ -133,4 +159,29 @@ public class SystemDataSourceController {
         PageInfo<Map<String, Object>> pageInfo = new PageInfo<>(tableData);
         return AjaxResult.success(pageInfo);
     }
+
+    @ApiOperation("删除表数据")
+    @PostMapping("/delTbData/{configId}")
+    public AjaxResult delTbData(@RequestParam("tableName") String tableName,
+                                @PathVariable("configId") Long configId,
+                                @RequestParam("dataBaseName") String dataBaseName,
+                                @RequestBody Map<String,Object> map) {
+        log.info("传输的map--{}",map);
+        SysDataSourceConfig sysDataSourceConfig = sysDataSourceService.getDataSourceConfig(configId);
+        SysDataSourceService sysDataSourceService = loadDataSourceStrategy.getInstance(sysDataSourceConfig);
+        return sysDataSourceService.delTbData(sysDataSourceConfig,tableName,dataBaseName,map);
+    }
+
+    @ApiOperation("编辑表数据")
+    @PostMapping("/editTbData/{configId}")
+    public AjaxResult editTbData(@RequestParam("tableName") String tableName,
+                                @PathVariable("configId") Long configId,
+                                @RequestParam("dataBaseName") String dataBaseName,
+                                @RequestBody Map<String,Map<String,Object>> map) {
+        log.info("传输的map--{}",map);
+        SysDataSourceConfig sysDataSourceConfig = sysDataSourceService.getDataSourceConfig(configId);
+        SysDataSourceService sysDataSourceService = loadDataSourceStrategy.getInstance(sysDataSourceConfig);
+        return sysDataSourceService.updateTbData(sysDataSourceConfig,tableName,dataBaseName,map);
+    }
+
 }

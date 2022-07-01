@@ -41,5 +41,15 @@ public interface SysDataSourceService {
 
     AjaxResult delTable(SysDataSourceConfig sysDataSourceConfig, String dataBaseName, String tableName);
 
+    AjaxResult getDataBase(SysDataSourceConfig config, String dataBaseName);
+
     List<Map<String,Object>> getTableData(SysDataSourceConfig config, String dataBaseName, String tableName, Page<Map<String,Object>> page);
+
+    AjaxResult delTbData(SysDataSourceConfig sysDataSourceConfig, String tableName, String dataBaseName, Map<String, Object> map);
+
+    AjaxResult saveTbData(SysDataSourceConfig sysDataSourceConfig, String tableName, String dataBaseName, Map<String, Object> map);
+
+    AjaxResult updateTbData(SysDataSourceConfig sysDataSourceConfig, String tableName, String dataBaseName, Map<String, Map<String,Object>> map);
+
+
 }

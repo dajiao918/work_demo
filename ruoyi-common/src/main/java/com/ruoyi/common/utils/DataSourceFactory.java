@@ -14,6 +14,8 @@ public class DataSourceFactory {
     public static final String MYSQL_DEFAULT_TABLE = "information_schema";
     public static final String MYSQL_URL_PREFIX = "jdbc:mysql://";
     public static final String MYSQL_DEFAULT_PARAMS = "?characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false";
+    public static final String ORACLE_PREFIX = "jdbc:oracle:thin:@";
+    public static final String ORACLE_SUBFIX = ":1521:ORCL";
 
 
 
@@ -55,7 +57,11 @@ public class DataSourceFactory {
     }
 
     private static DataSource createOracleDataSource(String ip, String password, String username, Map<String,String> params, String schemaName) {
-        return null;
+        HikariDataSource dataSource = new HikariDataSource();
+        dataSource.setPassword(password);
+        dataSource.setUsername(username);
+        dataSource.setJdbcUrl(ORACLE_PREFIX + ip + ORACLE_SUBFIX);
+        return dataSource;
     }
 
     private static DataSource createMySqlDataSource(String driver, String ip, String password, String username, Map<String,String> params, String databaseName) {

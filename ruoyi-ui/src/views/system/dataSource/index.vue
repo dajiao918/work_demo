@@ -1,11 +1,11 @@
 <template>
   <div v-loading="loading">
     <div v-if="databases.length === 0">
-      你还没有添加数据库连接！<el-button @click="dialogVisible = true">添加连接</el-button>
+      你还没有添加数据库连接！<el-button @click="addConnection">添加连接</el-button>
     </div>
 
     <div v-else>
-      <el-button @click="dialogVisible = true">添加连接</el-button>
+      <el-button @click="addConnection">添加连接</el-button>
       <el-tree
         :data="databases"
         ref="tree"
@@ -51,44 +51,6 @@
       <span slot="footer" class="dialog-footer">
           <el-button @click="handleTestConnBtn">测试连接</el-button>
           <el-button type="primary" @click="connDatabase">确定</el-button>
-        </span>
-    </el-dialog>
-    <!--  修改连接信息  -->
-    <el-dialog
-      title="请输入数据库连接信息"
-      :visible.sync="reDialogVisible"
-      width="30%"
-      :close="closeDialog">
-        <span>
-          <el-form label-position="left" label-width="80px" :model="editDataSourceConfig">
-            <el-form-item label="连接名">
-              <el-input v-model="editDataSourceConfig.schemaName"></el-input>
-            </el-form-item>
-            <el-form-item label="类型">
-              <el-select v-model="editDataSourceConfig.type" placeholder="请选择数据库类型">
-              <el-option
-                v-for="item in databaseTypes"
-                :key="item.typeId"
-                :label="item.name"
-                :value="item.typeId">
-              </el-option>
-            </el-select>
-            </el-form-item>
-
-            <el-form-item label="连接ip">
-              <el-input v-model="editDataSourceConfig.url"></el-input>
-            </el-form-item>
-            <el-form-item label="用户名">
-              <el-input v-model="editDataSourceConfig.username"></el-input>
-            </el-form-item>
-            <el-form-item label="用户密码">
-              <el-input v-model="editDataSourceConfig.password"></el-input>
-            </el-form-item>
-          </el-form>
-        </span>
-      <span slot="footer" class="dialog-footer">
-          <el-button @click="handleTestConnBtn">测试连接</el-button>
-          <el-button type="primary" @click="reDialogVisible=false">确定</el-button>
         </span>
     </el-dialog>
     <!--  创建数据库  -->
@@ -206,11 +168,19 @@
     <el-dialog title="表数据" :visible.sync="tableDataVisible">
       <el-table :data="tableData">
         <el-table-column
-          v-for="field in tableFields"
+          v-for="(field) in tableFields"
           :property="field"
           :key="field"
           :label="field"
           width="150">
+        </el-table-column>
+        <el-table-column
+          label="操作"
+          width="100">
+          <template slot-scope="scope">
+            <el-button @click="delTableData(scope.row,scope.$index)" type="text" size="small">删除</el-button>
+            <el-button @click="editTableData(scope.row,scope.$index)" type="text" size="small">编辑</el-button>
+          </template>
         </el-table-column>
       </el-table>
       <el-pagination
@@ -224,21 +194,43 @@
         :total="page.totalSize">
       </el-pagination>
     </el-dialog>
+    <!--  表的某一列  -->
+    <el-dialog width="30%" title="表数据" :visible.sync="tableFieldDataVisible">
+      <el-form label-position="left" label-width="80px" :model="tableFieldData">
+        <el-form-item
+          v-for="prop in propertyNames"
+          :key="prop"
+          :label="prop"
+        >
+          <el-input class="input_dog2" v-model="tableFieldData[prop]"></el-input>
+        </el-form-item>
+        <el-form-item>
+          <el-button @click="handleSubmitTableField">确定</el-button>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 
-import request from "../../../utils/request";
 import {
-  reqAddDataBase, reqAddTable,
+  reqAddDataBase,
+  reqAddTable,
   reqCharacterSets,
   reqCloseConn,
   reqConn,
-  reqDataBaseType, reqDelDataBase,
-  reqDeleteConfig, reqEditDataBase, reqGetTableData,
+  reqDataBaseType,
+  reqDataSourceConfig,
+  reqDelDataBase,
+  reqDeleteConfig,
+  reqDelTable,
+  reqDelTableData,
+  reqEditDataBase,
+  reqGetDataBase,
+  reqGetTableData,
   reqHistory,
-  reqTestConn
+  reqTestConn, reqUpdateTableData
 } from "../../../api/system/dataSource";
 
 export default {
@@ -247,6 +239,9 @@ export default {
     reqHistory().then(res=>{
       // console.log(res)
       this.databases = res.data;
+      this.databases.forEach(d => {
+        d.disabled = true;
+      })
       this.loading = false;
     })
     reqDataBaseType().then(res=>{
@@ -269,8 +264,6 @@ export default {
       databaseTypes:[],
       // 新建连接的dialog标识
       dialogVisible: false,
-      // 点击属性后需要修改连接的dialog标识
-      reDialogVisible: false,
       // 新建连接的表单渲染对象
       dataSourceConfig: {
         configId:null,
@@ -285,7 +278,6 @@ export default {
         updateTime:null,
         paramsMap:null
       },
-      editDataSourceConfig:{},
       // element-tree的显示属性
       defaultProps: {
         label:'schemaName',
@@ -308,10 +300,14 @@ export default {
       },
       // 创建表的dialog显示标识
       addTableFormVisible: false,
+      // 编辑表的数据时记录该数据的旧数据
       preData:{},
+      // 当前点击的节点所处于的config的id
       configId:null,
+      // 当前点击的节点所处于的数据库或者用户的信息
       dataBaseName:null,
       // mysql数据库引擎
+      // 引擎
       engines:[
         'InnoDB',
         'MRG_MYISAM',
@@ -323,6 +319,7 @@ export default {
         'PERFORMANCE_SCHEMA',
         'FEDERATED'
       ],
+      // 数据类型
       dataTypes : [
         'varchar',
         'char',
@@ -343,23 +340,51 @@ export default {
         'datetime',
         'timestamp',
         'year'],
+      // 约束
       constricts:[
         'auto_increment',
         'unique',
         'zerofill'
       ],
+      // 表的所有数据，用户渲染查看数据按钮展示的dialog里面的表格
       tableData:[],
+      // 表的所有字段，用于渲染表格的第一行
       tableFields:[],
+      // 编辑表数据时表单的渲染对象
+      tableFieldData: {},
+      // 编辑表数据时dialog的标识
       tableDataVisible: false,
+      // 表数据的分页对象
       page: {
         current:1,
         size: 10,
         totalPage:null,
         totalSize: null
-      }
+      },
+      // 表的所有字段名，用于获取某一条数据的value
+      propertyNames:[],
+      tableFieldDataVisible:false,
+      // table当前编辑的数据index
+      tableIndex:null
     }
   },
   methods: {
+    // 新建连接
+    addConnection() {
+      let config = this.dataSourceConfig;
+      config.configId = null;
+      config.userId = null;
+      config.type = null;
+      config.schemaName = '';
+      config.url = '';
+      config.username = '';
+      config.password = '';
+      config.disabled = null;
+      config.createTime = null;
+      config.updateTime = null;
+      config.paramsMap = null;
+      this.dialogVisible = true;
+    },
     // 测试连接按钮
     handleTestConnBtn() {
       let dataSourceConfig = this.dataSourceConfig;
@@ -379,7 +404,7 @@ export default {
       }
       reqConn(dataSourceVo).then(res=>{
         // console.log(data)
-        // console.log(res)
+        console.log(res)
         let databaseRes = res.data;
         // 旧连接
         if (data !== undefined) {
@@ -416,40 +441,50 @@ export default {
     deleteNode(node,data) {
       const parent = node.parent;
       const children = parent.data.children || parent.data;
-      const index = children.findIndex(d => d.id === data.id);
-      children.splice(index+1, 1);
+      let index;
+      if (node.level === 1) {
+        index = children.findIndex(d => d.configId === data.configId)
+      } else if (node.level === 2 || node.level === 3) {
+        index = children.findIndex(d => d.schemaName === data.schemaName);
+      }
+      // console.log(index)
+      children.splice(index, 1);
       this.$modal.msgSuccess("删除成功！");
     },
     // 删除按钮
     handleDeleteBtn(node, data) {
-      console.log(node)
-      console.log(data)
+      // console.log(node)
+      // console.log(data)
 
       if (node.level === 1) { //删除连接
         let that = this;
-        console.log(that)
+        // console.log(that)
         this.$modal.confirm("确认删除该连接？").then( ()=> {
           let configId = data.configId;
-          console.log(configId)
+          // console.log(configId)
           reqDeleteConfig(configId).then(res => {
-            console.log(that)
             that.deleteNode(node, data);
           })
         })
       } else if (node.level === 2) { // 删除数据库
         let that = this;
-        console.log(that)
         let configId = node.parent.data.configId;
         let schemaName = data.schemaName;
         this.$modal.confirm("确定删除数据库"+schemaName+"吗？").then( () => {
           reqDelDataBase(configId,schemaName).then(res=>{
-            // console.log(res)
-            console.log(that)
             that.deleteNode(node,data);
           })
         })
       } else if (node.level === 3) { // 删除表
-
+        let that = this;
+        let configId = node.parent.parent.data.configId;
+        let dataBaseName = node.parent.data.schemaName;
+        let tableName = data.schemaName;
+        this.$modal.confirm("确定删除表"+tableName+"吗？").then( () => {
+          reqDelTable(configId,dataBaseName,tableName).then(res=>{
+            that.deleteNode(node,data);
+          })
+        })
       }
 
     },
@@ -463,17 +498,21 @@ export default {
         if (data.disabled === false) {
           this.handleCloseBtn(data,"修改之前需要关闭连接，是否关闭？");
         } else { // 连接未开启
-          this.editDataSourceConfig = data;
-          this.reDialogVisible = true;
+          reqDataSourceConfig(data.configId).then(res=>{
+            this.dataSourceConfig = res.data;
+            this.dialogVisible = true;
+          })
         }
       } else if(node.level === 2) {
         // 数据库配置
         // console.log(node)
         // console.log(data)
         this.edit = true;
-        this.dataBaseConfig = data;
         this.dataSourceConfig = node.parent.data;
-        this.addDatabaseFormVisible = true;
+        reqGetDataBase(this.dataSourceConfig.configId,data.schemaName).then(res=>{
+          this.dataBaseConfig = res.data;
+          this.addDatabaseFormVisible = true;
+        })
       } else {
         // 表的配置
       }
@@ -509,11 +548,13 @@ export default {
         if (data.disabled) {
           this.$modal.msgError("请先打开连接");
         } else {
+          this.dataBaseConfig = {};
           this.edit = false;
           this.dataSourceConfig = data;
           that.addDatabaseFormVisible = true;
         }
       } else if (node.level === 2) { // 添加表
+        this.table = {fields:[{}]};
         this.configId = node.parent.data.configId
         this.dataBaseConfig = data;
         this.addTableFormVisible = true;
@@ -585,14 +626,36 @@ export default {
         let obj = data.list[0];
         if (obj !== undefined) {
           let names = Object.getOwnPropertyNames(obj);
-          names = names.filter(name=>{
+          this.propertyNames = names.filter(name=>{
             return name !== "__ob__";
           })
-          // console.log(names)
-          this.tableFields = names;
+          this.tableFields = this.propertyNames;
           this.tableDataVisible = true;
         }
       })
+    },
+    delTableData(obj,index) {
+      this.$modal.confirm("确定删除第"+(index+1)+"行的数据吗？").then(()=>{
+        let map = {};
+        this.propertyNames.forEach(name => {
+          map[name] = obj[name];
+        })
+        reqDelTableData(this.configId,this.dataBaseName,this.tableName,map).then(res=>{
+          this.tableData.splice(index,1);
+          this.$modal.msgSuccess("删除成功！")
+        });
+      })
+    },
+    editTableData(obj,index) {
+      // console.log(obj)
+      this.tableIndex = index
+      this.preData = obj;
+      this.propertyNames.forEach(name => {
+        this.$set(this.tableFieldData,name+'',obj[name])
+        // this.tableFieldData[name] = obj[name];
+      })
+      console.log(this.tableFieldData)
+      this.tableFieldDataVisible = true;
     },
     handlePageChange(current) {
       // console.log(current)
@@ -612,6 +675,17 @@ export default {
       if (index !== -1) {
         this.table.fields.splice(index, 1)
       }
+    },
+    handleSubmitTableField() {
+      let map = {
+        oldMap: this.preData,
+        newMap: this.tableFieldData
+      };
+      reqUpdateTableData(this.configId,this.dataBaseName,this.tableName,map).then(res=>{
+        this.tableData[this.tableIndex] = this.tableFieldData;
+        this.tableFieldDataVisible = false;
+        console.log(res);
+      })
     },
     addField() {
       this.table.fields.push({
@@ -635,5 +709,8 @@ export default {
 .input_dog{
   width: 140px;
   margin-left: 20px;
+}
+.input_dog2{
+  width: 140px;
 }
 </style>

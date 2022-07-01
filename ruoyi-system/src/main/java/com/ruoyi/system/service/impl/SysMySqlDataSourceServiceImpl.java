@@ -24,7 +24,7 @@ import java.util.Map;
  **/
 @Service("mysqlDataSourceServiceImpl")
 @Slf4j
-public class SysMySqlDataSourceServiceImpl extends AbstractDataSourceServiceImpl implements SysDataSourceService {
+public class SysMySqlDataSourceServiceImpl extends AbstractDataSourceServiceImpl {
 
     @Autowired
     protected SysMySQLMapper sysMySQLMapper;
@@ -98,5 +98,29 @@ public class SysMySqlDataSourceServiceImpl extends AbstractDataSourceServiceImpl
     protected List<Map<String,Object>> doGetTable(String tableName, Page<Map<String,Object>> page) {
         PageHelper.startPage(page.getPageNum(),page.getPageSize());
         return sysMySQLMapper.getTableData(tableName);
+    }
+
+    @Override
+    protected AjaxResult doGetDataBase(String dataBaseName) {
+        return AjaxResult.success(sysMySQLMapper.getDataBase(dataBaseName));
+    }
+
+    @Override
+    protected AjaxResult doDelTableData(String tableName, Map<String, Object> map) {
+        sysMySQLMapper.delTableData(tableName,map);
+        return AjaxResult.success();
+    }
+
+    @Override
+    protected AjaxResult doSaveTableData(String tableName, Map<String, Object> map) {
+        sysMySQLMapper.insertTableData(tableName,map);
+        return AjaxResult.success();
+    }
+
+    @Override
+    protected AjaxResult doUpdateTableData(String tableName, Map<String, Object> oldMap, Map<String,Object> newMap) {
+
+        sysMySQLMapper.updateTableData(tableName,oldMap,newMap);
+        return AjaxResult.success();
     }
 }

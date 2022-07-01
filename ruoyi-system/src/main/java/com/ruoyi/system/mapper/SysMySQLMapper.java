@@ -20,6 +20,8 @@ public interface SysMySQLMapper {
 
     MySQLTableMetaVo getTable(@Param("databaseName") String databaseName, @Param("tableName") String tableName);
 
+    MysqlSheMetaVo getDataBase(@Param("databaseName") String databaseName);
+
     void createDatabase(@Param("config") DataBaseConfigVo config);
 
     void delDataBase(String dataBaseName);
@@ -31,4 +33,13 @@ public interface SysMySQLMapper {
     void delTable(@Param("tableName")String tableName);
 
     List<Map<String,Object>> getTableData(@Param("tableName")String tableName);
+
+    void delTableData(@Param("tableName") String tableName,@Param("map") Map<String, Object> map);
+
+    void insertTableData(@Param("tableName") String tableName,@Param("map") Map<String, Object> map);
+
+    void updateTableData(@Param("tableName") String tableName,
+                         @Param("oldMap") Map<String,Object> oldMap,
+                         @Param("newMap") Map<String,Object> newMap);
+
 }

@@ -17,6 +17,7 @@ import com.ruoyi.system.mapper.SysDataSourceConfigMapper;
 import com.ruoyi.system.mapper.SysOracleMapper;
 import com.ruoyi.system.service.SysDataBaseTypeService;
 import com.ruoyi.system.service.SysDataSourceService;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -38,9 +39,6 @@ public abstract class AbstractDataSourceServiceImpl implements SysDataSourceServ
     @Autowired
     protected SysDataBaseTypeService sysDataBaseTypeService;
 
-    @Autowired
-    protected SysOracleMapper sysOracleMapper;
-
     /**
      * 测试连接
      *  1. 创建数据源
@@ -51,23 +49,31 @@ public abstract class AbstractDataSourceServiceImpl implements SysDataSourceServ
      */
     @Override
     public AjaxResult testConnection(SysDataSourceConfig config, boolean service) {
+        Boolean result = (Boolean) dataSourceCommon(config, true);
+        if (result) {
+            return AjaxResult.success();
+        }
+        return AjaxResult.error();
+    }
+
+    public Object dataSourceCommon(SysDataSourceConfig config, boolean service) {
         SysDataBaseType driver = sysDataBaseTypeService.getDriver(config.getType());
         DataSource dataSource =
                 DataSourceFactory.createDataSource(driver.getDriver(),
                         config.getUrl(), config.getPassword(), config.getUsername(), config.getParamsMap());
         if (dataSource == null) {
-            return AjaxResult.error("创建数据源失败！");
+            return false;
         }
         try {
             Connection connection = dataSource.getConnection();
             connection.close();
         } catch (Exception e) {
-            return AjaxResult.error(e.getMessage());
+            return false;
         }
         if (service) {
-            return AjaxResult.success();
+            return true;
         }
-        return AjaxResult.success(dataSource);
+        return dataSource;
     }
 
     /**
@@ -104,22 +110,16 @@ public abstract class AbstractDataSourceServiceImpl implements SysDataSourceServ
     public AjaxResult history(Long userId) {
 
         List<SysDataSourceConfig> configs = sysDataSourceConfigMapper.histories(userId);
-
-        configs.forEach(config -> {
-            config.setDisabled(true);
-        });
-
         return AjaxResult.success(configs);
     }
 
 
     @Override
     public AjaxResult connDataBase(SysDataSourceConfig config) {
-        long userId = config.getUserId();
-        AjaxResult ajaxResult = testConnection(config, false);
+        Object obj = dataSourceCommon(config, false);
         // 连接失败
-        if (ajaxResult.getCode() != HttpStatus.SUCCESS) {
-            return ajaxResult;
+        if (obj instanceof Boolean) {
+            return AjaxResult.error("连接失败，请检查参数信息");
         }
 
         // 记录参数信息
@@ -137,6 +137,13 @@ public abstract class AbstractDataSourceServiceImpl implements SysDataSourceServ
             SysDataSourceConfig sysDataSourceConfig = sysDataSourceConfigMapper.getDataSourceConfig(config.getConfigId());
             if (sysDataSourceConfig != null) {
                 sysDataSourceConfigMapper.update(config);
+                // 同一个用户的账号可能在不同网页打开连接，这样就不必再次生成DataSource，直接从map中查找
+                String key = getKey(config.getUserId(),config.getCreateTime().getTime(),null,true);
+                if (DynamicDataSourceMap.contains(key)) {
+                    DynamicDataSourceContextHolder.setDataSourceType(key);
+                    doGetDataBases(config);
+                    return AjaxResult.success(config);
+                }
                 isNew = false;
             }
         }
@@ -147,7 +154,7 @@ public abstract class AbstractDataSourceServiceImpl implements SysDataSourceServ
         }
 
         // 获取数据源
-        DataSource dataSource = (DataSource) ajaxResult.get(AjaxResult.DATA_TAG);
+        DataSource dataSource = (DataSource) obj;
         String key = getKey(config.getUserId(),config.getCreateTime().getTime(),null,true);
         log.info("数据源id--{}",key);
         // 存入map
@@ -161,7 +168,7 @@ public abstract class AbstractDataSourceServiceImpl implements SysDataSourceServ
 
     /**
      * 关闭连接两个步骤
-     *  1. 设置数据库中信息，连接关闭
+     *  1. 设置数据库中信息，连接关闭+
      *  2. 删除map中存储的DataSource
      * @param configId
      * @return
@@ -179,6 +186,7 @@ public abstract class AbstractDataSourceServiceImpl implements SysDataSourceServ
 
     @Override
     public SysDataSourceConfig getDataSourceConfig(Long configId) {
+        DynamicDataSourceContextHolder.setDataSourceType(DataSourceType.MASTER.name());
         return sysDataSourceConfigMapper.getDataSourceConfig(configId);
     }
 
@@ -204,6 +212,14 @@ public abstract class AbstractDataSourceServiceImpl implements SysDataSourceServ
         // 动态设置数据源
         DynamicDataSourceContextHolder.setDataSourceType(key);
         return doUpdateDataBase(dataBaseConfigVo);
+    }
+
+    @Override
+    public AjaxResult getDataBase(SysDataSourceConfig config, String dataBaseName) {
+        String key = getKey(config.getUserId(),config.getCreateTime().getTime(),null,true);
+        // 动态设置数据源
+        DynamicDataSourceContextHolder.setDataSourceType(key);
+        return doGetDataBase(dataBaseName);
     }
 
     protected String getKey(Long userId, Long time, String dataBaseName, boolean dataSource) {
@@ -259,7 +275,36 @@ public abstract class AbstractDataSourceServiceImpl implements SysDataSourceServ
         return doGetTable(tableName,page);
     }
 
+    @Override
+    public AjaxResult delTbData(SysDataSourceConfig config, String tableName, String dataBaseName, Map<String, Object> map) {
+        preDynamicDataSourceSet(config,dataBaseName);
+        return doDelTableData(tableName,map);
+    }
+
+    @Override
+    public AjaxResult updateTbData(SysDataSourceConfig config, String tableName,
+                                   String dataBaseName, Map<String, Map<String,Object>> map) {
+        preDynamicDataSourceSet(config,dataBaseName);
+        Map<String, Object> oldMap = map.get("oldMap");
+        Map<String, Object> newMap = map.get("newMap");
+        return doUpdateTableData(tableName,oldMap,newMap);
+    }
+
+    @Override
+    public AjaxResult saveTbData(SysDataSourceConfig config, String tableName, String dataBaseName, Map<String, Object> map) {
+        preDynamicDataSourceSet(config,dataBaseName);
+        return doSaveTableData(tableName,map);
+    }
+
+    protected abstract AjaxResult doSaveTableData(String tableName, Map<String, Object> map);
+
+    protected abstract AjaxResult doUpdateTableData(String tableName, Map<String, Object> oldMap, Map<String,Object> newMap);
+
+    protected abstract AjaxResult doDelTableData(String tableName, Map<String, Object> map);
+
     protected abstract List<Map<String,Object>> doGetTable(String tableName, Page<Map<String,Object>> page);
+
+    protected abstract AjaxResult doGetDataBase(String dataBaseName);
 
     protected abstract AjaxResult doDelTable(String tableName);
 
